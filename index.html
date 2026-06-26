@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>מערכת ניהול תקציב</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>תקציב משפחתי</h2>
+        <a href="#" class="nav-link active" onclick="switchPage('monthly')">דיווח חודשי</a>
+        <a href="#" class="nav-link" onclick="switchPage('annual')">מצב שנתי</a>
+        <a href="#" class="nav-link" onclick="switchPage('settings')">ניהול והגדרות</a>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="monthly" class="page active">
+            <div class="header-container">
+                <h1>דיווח חודשי - <span id="current-month-label">אפריל 2026</span></h1>
+            </div>
+            
+            <div class="summary-container">
+                <div class="summary-card income-card">
+                    <h4>סה"כ הכנסות (בפועל)</h4>
+                    <div class="amount-value" id="total-income-display">0.00 ₪</div>
+                    <div class="card-progress-container">
+                        <span class="card-progress-text" id="income-percent-label">0%</span>
+                        <div class="progress-bar-bg">
+                            <div id="income-bar-fill" class="progress-bar-fill bg-normal" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card expense-card">
+                    <h4>סה"כ הוצאות (בפועל)</h4>
+                    <div class="amount-value" id="total-expenses-display">0.00 ₪</div>
+                    <div class="card-progress-container">
+                        <span class="card-progress-text" id="expense-percent-label">0%</span>
+                        <div class="progress-bar-bg">
+                            <div id="expense-bar-fill" class="progress-bar-fill bg-normal" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card balance-card">
+                    <h4>יתרה חודשית נוכחית</h4>
+                    <div class="amount-value" id="total-balance-display">0.00 ₪</div>
+                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 8px; font-weight: bold;">
+                        הכנסות פחות הוצאות בפועל
+                    </div>
+                </div>
+            </div>
+            
+            <div id="tables-container"></div>
+        </div>
+
+        <div id="annual" class="page"><h1>מצב שנתי</h1><p>בפיתוח בהמשך...</p></div>
+        <div id="settings" class="page"><h1>ניהול והגדרות</h1><p>בפיתוח בהמשך...</p></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

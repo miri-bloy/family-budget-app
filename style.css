@@ -1,0 +1,207 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    background-color: #f8f9fa;
+    color: #333;
+    font-size: 14px;
+}
+
+/* תפריט ניווט צידי */
+.sidebar {
+    width: 200px;
+    background-color: #2c3e50;
+    color: white;
+    height: 100vh;
+    position: fixed;
+}
+
+.sidebar h2 {
+    text-align: center;
+    padding: 12px 0;
+    margin: 0;
+    font-size: 18px;
+    border-bottom: 1px solid #34495e;
+}
+
+.sidebar a {
+    display: block;
+    color: #ecf0f1;
+    padding: 10px 15px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.sidebar a:hover, .sidebar a.active {
+    background-color: #34495e;
+    border-right: 4px solid #3498db;
+}
+
+/* אזור התוכן המרכזי */
+.main-content {
+    margin-right: 200px;
+    padding: 15px;
+    width: calc(100% - 200px);
+}
+
+.main-content h1 {
+    font-size: 22px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* --- שורת כרטיסי סיכום בראש העמוד --- */
+.summary-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    min-width: 200px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #eef2f7;
+    border-right: 5px solid #bdc3c7;
+}
+
+.summary-card.income-card { border-right-color: #2ecc71; }   
+.summary-card.expense-card { border-right-color: #e74c3c; }  
+.summary-card.balance-card { border-right-color: #f1c40f; }  
+
+.summary-card h4 {
+    margin: 0 0 5px 0;
+    color: #7f8c8d;
+    font-size: 12px;
+}
+
+.summary-card .amount-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* מיכל הסרגל בתוך הכרטיס הראשי */
+.card-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    border-top: 1px dashed #f2f4f4;
+    padding-top: 6px;
+}
+
+.card-progress-text {
+    font-size: 11px;
+    font-weight: bold;
+    color: #566573;
+    min-width: 30px;
+}
+
+/* --- סידור הקטגוריות בשני טורים --- */
+#tables-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: 12px;
+}
+
+/* עיצוב בלוק קטגוריה קומפקטי */
+.category-block {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #eef2f7;
+}
+
+.category-block h3 {
+    margin: 0 0 8px 0;
+    color: #2c3e50;
+    font-size: 15px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 4px;
+}
+
+/* טבלאות דחוסות */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: right;
+}
+
+th, td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #f2f4f4;
+    vertical-align: middle;
+}
+
+th { 
+    background-color: #fafbfc; 
+    color: #7f8c8d; 
+    font-size: 12px;
+    font-weight: 600;
+}
+
+td strong {
+    font-size: 13px;
+    color: #2c3e50;
+}
+
+/* כפתור פלוס */
+.btn-add {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.btn-add:hover { 
+    background-color: #219653; 
+}
+
+/* --- רכיבי תרשים סרגל הניצול הקומפקטי בטבלאות --- */
+.budget-progress-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.budget-numbers {
+    display: flex;
+    justify-content: space-between;
+    width: 150px;
+    font-size: 11px;
+    color: #566573;
+    font-weight: bold;
+    order: 2;
+}
+
+.progress-bar-bg {
+    flex-grow: 1;
+    height: 6px;
+    background-color: #eaeaea;
+    border-radius: 3px;
+    order: 1;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    transition: width 0.3s ease-in-out;
+}
+
+/* צבעי הסטטוסים */
+.bg-normal { background-color: #2ecc71; }   
+.bg-warning { background-color: #f1c40f; }  
+.bg-danger { background-color: #e74c3c; }
