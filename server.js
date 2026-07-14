@@ -7,28 +7,22 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-app.use(express.static(__dirname)); // מאפשר לשרת להציג את קבצי ה-HTML, CSS, JS
+app.use(express.static(__dirname)); 
 
-// חיבור לבסיס הנתונים (ייווצר קובץ אמיתי בתיקייה)
 const db = new sqlite3.Database(path.join(__dirname, 'budget.db'), (err) => {
     if (err) console.error('שגיאה בחיבור ל-DB:', err.message);
     else console.log('מחובר לבסיס הנתונים SQLite בהצלחה.');
 });
 
-// הרצת קובץ ה-setup.sql רק אם ה-DB חדש
 db.serialize(() => {
     const sqlInit = fs.readFileSync(path.join(__dirname, 'setup.sql'), 'utf8');
     db.exec(sqlInit, (err) => {
         if (err) console.error('שגיאה בהרצת סקריפט ההקמה:', err.message);
-        else console.log('טבלאות ונתוני בסיס הוקמו/אומתו בהצלחה.');
     });
 });
 
-// נקודת קצה (API) לקבלת נתוני החודש הנוכחי
-app.get('/api/month/:month', (req, requireMonth) => {
+app.get('/api/month/:month', (req, res) => {
     const targetMonth = req.params.month;
-    
-    // שאילתה השולפת את הסעיפים, קבוצותיהם, והסכומים (מתוכנן + מנוצל בפועל)
     const query = `
         SELECT mr.id, c.name AS category_name, c.type AS category_type, bi.name AS item_name, 
                mr.planned_amount, mr.actual_amount 
@@ -39,52 +33,129 @@ app.get('/api/month/:month', (req, requireMonth) => {
     `;
     
     db.all(query, [targetMonth], (err, rows) => {
-        if (err) return req.res.status(500).json({ error: err.message });
+        if (err) return res.status(500).json({ error: err.message });
         
-        // אם החודש עדיין לא קיים ב-records, ניצור אותו אוטומטית מנתוני הברירת מחדל
         if (rows.length === 0) {
             db.all("SELECT id, default_planned FROM budget_items", [], (err, items) => {
-                if (err) return req.res.status(500).json({ error: err.message });
-                
+                if (err) return res.status(500).json({ error: err.message });
                 const stmt = db.prepare("INSERT INTO monthly_records (month, item_id, planned_amount) VALUES (?, ?, ?)");
                 items.forEach(item => {
                     stmt.run(targetMonth, item.id, item.default_planned);
                 });
                 stmt.finalize(() => {
-                    // שליפה מחדש לאחר היצירה
-                    db.all(query, [targetMonth], (err, newRows) => {
-                        return req.res.json(newRows);
-                    });
+                    db.all(query, [targetMonth], (err, newRows) => res.json(newRows));
                 });
             });
         } else {
-            req.res.json(rows);
+            res.json(rows);
         }
     });
 });
 
-// נקודת קצה לעדכון מצטבר של סכום הניצול בפועל (ע"י לחצן ה- +)
 app.post('/api/update-actual', (req, res) => {
     const { recordId, amountToAdd } = req.body;
-    
-    if (!recordId || isNaN(amountToAdd)) {
-        return res.status(400).json({ success: false, error: "נתונים שגויים" });
-    }
+    if (!recordId || isNaN(amountToAdd)) return res.status(400).json({ success: false });
 
-    // שאילתת SQL שמוסיפה את הסכום החדש לסכום הקיים בשדה בפועל
-    const query = `
-        UPDATE monthly_records 
-        SET actual_amount = actual_amount + ? 
-        WHERE id = ?
-    `;
-
+    const query = `UPDATE monthly_records SET actual_amount = actual_amount + ? WHERE id = ?`;
     db.run(query, [amountToAdd, recordId], function(err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) return res.status(500).json({ success: false });
         res.json({ success: true });
     });
 });
 
-// הפעלת השרת
+// נקודת הקצה המתוקנת לסיכום השנתי
+app.get('/api/annual-summary', (req, res) => {
+    // שליפה ישירה של החודש מתוך הפורמט הקיים במערכת
+    const queryMonths = `
+        SELECT 
+            mr.month as raw_month,
+            SUM(CASE WHEN c.type = 'INCOME' THEN mr.actual_amount ELSE 0 END) as total_income,
+            SUM(CASE WHEN c.type = 'EXPENSE' THEN mr.actual_amount ELSE 0 END) as total_expense
+        FROM monthly_records mr
+        JOIN budget_items bi ON mr.item_id = bi.id
+        JOIN categories c ON bi.category_id = c.id
+        GROUP BY mr.month;
+    `;
+
+    const queryCategories = `
+        SELECT 
+            c.name as category_name,
+            c.type as category_type,
+            bi.name as item_name,
+            (bi.default_planned * 12) as total_planned,
+            SUM(mr.actual_amount) as total_actual
+        FROM budget_items bi
+        JOIN categories c ON bi.category_id = c.id
+        LEFT JOIN monthly_records mr ON mr.item_id = bi.id
+        GROUP BY c.name, bi.name
+        ORDER BY c.type DESC, c.name, bi.name;
+    `;
+
+    db.all(queryMonths, [], (err, monthRows) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // יצירת מבנה קבוע מראש בסדר כרונולוגי לועזי מוחלט (מינואר עד דצמבר)
+        const orderedMonths = [
+            { key: "01", name: "ינואר", income: 0, expense: 0 },
+            { key: "02", name: "פברואר", income: 0, expense: 0 },
+            { key: "03", name: "מרץ", income: 0, expense: 0 },
+            { key: "04", name: "אפריל", income: 0, expense: 0 },
+            { key: "05", name: "מאי", income: 0, expense: 0 },
+            { key: "06", name: "יוני", income: 0, expense: 0 },
+            { key: "07", name: "יולי", income: 0, expense: 0 },
+            { key: "08", name: "אוגוסט", income: 0, expense: 0 },
+            { key: "09", name: "ספטמבר", income: 0, expense: 0 },
+            { key: "10", name: "אוקטובר", income: 0, expense: 0 },
+            { key: "11", name: "נובמבר", income: 0, expense: 0 },
+            { key: "12", name: "דצמבר", income: 0, expense: 0 }
+        ];
+
+        // התאמת הנתונים שנשלפו מה-DB למבנה הכרונולוגי לפי בדיקת הטקסט (לדוגמה: "2026-04" מכיל את "04")
+        monthRows.forEach(row => {
+            if (row.raw_month) {
+                const parts = row.raw_month.split('-');
+                const monthTargetNum = parts[1] || ""; // יחלץ את ה-"04"
+                
+                const targetObj = orderedMonths.find(m => m.key === monthTargetNum);
+                if (targetObj) {
+                    targetObj.income = row.total_income || 0;
+                    targetObj.expense = row.total_expense || 0;
+                }
+            }
+        });
+
+        db.all(queryCategories, [], (err, catRows) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const categoriesMap = {};
+            catRows.forEach(row => {
+                if (!categoriesMap[row.category_name]) {
+                    categoriesMap[row.category_name] = {
+                        category_name: row.category_name,
+                        category_type: row.category_type,
+                        actual_amount: 0,
+                        planned_amount: 0,
+                        subItems: []
+                    };
+                }
+                categoriesMap[row.category_name].actual_amount += (row.total_actual || 0);
+                categoriesMap[row.category_name].planned_amount += row.total_planned;
+                
+                categoriesMap[row.category_name].subItems.push({
+                    item_name: row.item_name,
+                    actual_amount: (row.total_actual || 0),
+                    planned_amount: row.total_planned
+                });
+            });
+
+            res.json({
+                months: orderedMonths, // נשלח את המערך המסודר כרונולוגית תמיד
+                categories: Object.values(categoriesMap)
+            });
+        });
+    });
+});
+
 app.listen(PORT, () => {
-    console.log(`האפליקציה רצה בהצלחה במצב אופליין בכתובת: http://localhost:${PORT}`);
+    console.log(`השרת רץ בכתובת: http://localhost:${PORT}`);
 });

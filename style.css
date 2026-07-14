@@ -201,7 +201,318 @@ td strong {
     transition: width 0.3s ease-in-out;
 }
 
+/* Pulse animation for optimistic updates on a changed bar */
+.progress-bar-fill.pulse {
+    animation: pulseHighlight 900ms ease;
+}
+
+@keyframes pulseHighlight {
+    0% { transform: scaleY(1); box-shadow: 0 0 0 rgba(0,0,0,0); }
+    30% { transform: scaleY(1.06); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+    100% { transform: scaleY(1); box-shadow: 0 0 0 rgba(0,0,0,0); }
+}
+
 /* צבעי הסטטוסים */
 .bg-normal { background-color: #2ecc71; }   
 .bg-warning { background-color: #f1c40f; }  
 .bg-danger { background-color: #e74c3c; }
+
+/* --- עיצוב דף מצב שנתי וגרף עמודות (image_e4236a.png) --- */
+.chart-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.chart-title-badge {
+    background-color: #4a77d4;
+    color: white;
+    display: inline-block;
+    padding: 8px 30px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 25px;
+}
+
+.chart-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 160px;
+    border-bottom: 2px solid #eaeaea;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.chart-month-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.chart-bars-pair {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 120px; /* גובה מקסימלי לעמודות */
+    width: 100%;
+    justify-content: center;
+}
+
+.chart-bar {
+    width: 16px;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.5s ease-out;
+    box-shadow: inset -1px 0 2px rgba(0,0,0,0.1);
+}
+
+.chart-bar.income { background-color: #00b894; }  /* ירוק הכנסות */
+.chart-bar.expense { background-color: #ff7675; } /* אדום הוצאות */
+
+.chart-month-label {
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+/* --- רכיב קטגוריות מתקפלות (Accordion) לשנה --- */
+.accordion-item {
+    background: white;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    border: 1px solid #eef2f7;
+    overflow: hidden;
+}
+
+.accordion-header {
+    background-color: #fafbfc;
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    font-weight: bold;
+}
+
+.accordion-header:hover {
+    background-color: #f1f2f6;
+}
+
+.accordion-content {
+    display: none;
+    padding: 10px 15px;
+    border-top: 1px solid #f1f2f6;
+    background-color: #fff;
+}
+
+.accordion-item.open .accordion-content {
+    display: block;
+}
+
+.accordion-toggle-icon {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.accordion-item.open .accordion-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* הקטנת טקסט סעיפי התקציב הפנימיים באקורדיון השנתי בהשוואה לקבוצה */
+.annual-sub-table td {
+    font-size: 13px !important;
+    padding: 6px 10px;
+}
+
+/* התאמת גודל המספרים והאחוזים של תתי-הסעיפים */
+.annual-sub-table .budget-numbers {
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+/* הפיכת סרגל ההתקדמות של תתי-הסעיפים למעט נמוך ועידן יותר */
+.annual-sub-table .progress-bar-bg {
+    height: 6px;
+}
+
+/* כשהאקורדיון השנתי פתוח - נעלים את סרגל ההתקדמות הראשי שלו */
+.accordion-item.open .accordion-progress-wrapper {
+    opacity: 0;
+    visibility: hidden;
+    max-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+/* הוספת מעבר חלק למראה נקי */
+.accordion-progress-wrapper {
+    transition: all 0.25s ease;
+    flex-grow: 1;
+    max-width: 400px;
+    margin: 0 20px;
+}
+
+/* כפתור צף בצד המסך */
+#quick-report-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px; /* משתלב מעולה בצד ימין */
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    border: none;
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+    z-index: 999;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#quick-report-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+}
+
+/* רקע אפור מטושטש למסך כולו */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(44, 62, 80, 0.5); /* רקע כהה עדין */
+    backdrop-filter: blur(5px); /* אפקט טשטוש יפהפה למסך */
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* כשהמודל פעיל */
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* כרטיס הטופס הלבן במרכז */
+.modal-card {
+    background: white;
+    width: 100%;
+    max-width: 450px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    padding: 25px;
+    direction: rtl;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-card {
+    transform: scale(1);
+}
+
+/* מבנה כותרת הטופס */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eef2f5;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    font-size: 26px;
+    color: #95a5a6;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn-close-modal:hover {
+    color: #e74c3c;
+}
+
+/* קבוצות טופס */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #34495e;
+    font-size: 14px;
+}
+
+.form-group input[type="number"],
+.form-group input[type="text"],
+.form-group select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #27ae60;
+}
+
+/* עיצוב תיבת הבחירה עם גובה מינימלי במצב סגור וגלילה במצב פתוח */
+.form-group select {
+    min-height: 42px;
+    height: 42px;
+    background: #fafbfc;
+    overflow-y: auto;
+}
+
+.form-group select[size] {
+    height: auto;
+    min-height: 42px;
+}
+
+/* כפתור שליחה פנימי */
+#btn-submit-quick {
+    width: 100%;
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#btn-submit-quick:hover {
+    background: #219653;
+}

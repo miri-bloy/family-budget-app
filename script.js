@@ -1,5 +1,4 @@
 const CURRENT_MONTH = "2026-04"; 
-
 let currentMonthRecords = [];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -11,7 +10,11 @@ function switchPage(pageId) {
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     
     document.getElementById(pageId).classList.add('active');
-    if(event && event.target) event.target.classList.add('active');
+    if(window.event && window.event.target) window.event.target.classList.add('active');
+
+    if (pageId === 'annual') {
+        loadAnnualDataFromServer();
+    }
 }
 
 function loadMonthlyData() {
@@ -22,16 +25,12 @@ function loadMonthlyData() {
             renderTables(data);
             calculateAndDisplayTotals(); 
         })
-        .catch(err => console.error("שגיאה בטעינת הנתונים מהשרת:", err));
+        .catch(err => console.error(err));
 }
 
-// פונקציה מורחבת לחישוב סכומי מאקרו ואחוזי התקדמות כלליים לכרטיסיות הראשיות
 function calculateAndDisplayTotals() {
-    let totalIncomeActual = 0;
-    let totalIncomePlanned = 0;
-    
-    let totalExpensesActual = 0;
-    let totalExpensesPlanned = 0;
+    let totalIncomeActual = 0, totalIncomePlanned = 0;
+    let totalExpensesActual = 0, totalExpensesPlanned = 0;
 
     currentMonthRecords.forEach(record => {
         if (record.category_type === 'INCOME') {
@@ -45,42 +44,22 @@ function calculateAndDisplayTotals() {
 
     let balance = totalIncomeActual - totalExpensesActual;
 
-    // 1. הצגת המספרים המדויקים
     document.getElementById('total-income-display').innerText = totalIncomeActual.toFixed(2) + " ₪";
     document.getElementById('total-expenses-display').innerText = totalExpensesActual.toFixed(2) + " ₪";
     document.getElementById('total-balance-display').innerText = balance.toFixed(2) + " ₪";
     
-    // צביעת טקסט היתרה במידה והוא שלילי
     const balanceDisplay = document.getElementById('total-balance-display');
-    if (balance < 0) balanceDisplay.style.color = "#e74c3c";
-    else balanceDisplay.style.color = "#2c3e50";
+    balanceDisplay.style.color = balance < 0 ? "#e74c3c" : "#2c3e50";
 
-    // 2. חישוב אחוזים עבור כרטיס הכנסות
-    let incomePercent = 0;
-    if (totalIncomePlanned !== 0) {
-        incomePercent = Math.round((totalIncomeActual / totalIncomePlanned) * 100);
-    }
+    let incomePercent = totalIncomePlanned !== 0 ? Math.round((totalIncomeActual / totalIncomePlanned) * 100) : 0;
     document.getElementById('income-percent-label').innerText = incomePercent + "%";
-    
     const incomeBar = document.getElementById('income-bar-fill');
     incomeBar.style.width = `${Math.min(Math.max(incomePercent, 0), 100)}%`;
-    incomeBar.className = 'progress-bar-fill';
-    if (incomePercent < 100) incomeBar.classList.add('bg-warning'); // טרם הושלמו כל ההכנסות
-    else incomeBar.classList.add('bg-normal');
 
-    // 3. חישוב אחוזים עבור כרטיס הוצאות
-    let expensePercent = 0;
-    if (totalExpensesPlanned !== 0) {
-        expensePercent = Math.round((totalExpensesActual / totalExpensesPlanned) * 100);
-    }
+    let expensePercent = totalExpensesPlanned !== 0 ? Math.round((totalExpensesActual / totalExpensesPlanned) * 100) : 0;
     document.getElementById('expense-percent-label').innerText = expensePercent + "%";
-    
     const expenseBar = document.getElementById('expense-bar-fill');
     expenseBar.style.width = `${Math.min(Math.max(expensePercent, 0), 100)}%`;
-    expenseBar.className = 'progress-bar-fill';
-    if (expensePercent > 100) expenseBar.classList.add('bg-danger');      // חריגה מהמסגרת הכוללת
-    else if (expensePercent > 85) expenseBar.classList.add('bg-warning'); // התקרבות לקצה המסגרת
-    else expenseBar.classList.add('bg-normal');
 }
 
 function renderTables(records) {
@@ -97,28 +76,11 @@ function renderTables(records) {
         let block = document.createElement("div");
         block.className = "category-block";
         
-        let html = `<h3>${catName}</h3>`;
-        html += `<table>
-            <thead>
-                <tr>
-                    <th>סעיף תקציב</th>
-                    <th style="width: 350px;">מצב ניצול תקציב (בפועל / מתוכנן)</th>
-                    <th style="width: 80px; text-align: center;">פעולה</th>
-                </tr>
-            </thead>
-            <tbody>`;
+        let html = `<h3>${catName}</h3><table><thead><tr><th>סעיף תקציב</th><th style="width: 350px;">מצב ניצול תקציב (מתוכנן / בפועל)</th><th style="width: 80px; text-align: center;">פעולה</th></tr></thead><tbody>`;
             
         groups[catName].forEach(item => {
             const isIncome = item.category_type === 'INCOME';
-            
-            let percent = 0;
-            if (item.planned_amount !== 0) {
-                percent = Math.round((item.actual_amount / item.planned_amount) * 100);
-            } else if (item.actual_amount > 0) {
-                percent = 100;
-            }
-            
-            const barWidth = Math.min(Math.max(percent, 0), 100);
+            let percent = item.planned_amount !== 0 ? Math.round((item.actual_amount / item.planned_amount) * 100) : (item.actual_amount > 0 ? 100 : 0);
             
             let colorClass = 'bg-normal';
             if (!isIncome) {
@@ -128,6 +90,7 @@ function renderTables(records) {
                 if (percent < 100) colorClass = 'bg-warning';
             }
 
+            // תיקון סדר המספרים כאן על מנת למנוע תצוגה הפוכה בעברית:
             html += `
                 <tr>
                     <td><strong>${item.item_name}</strong></td>
@@ -135,20 +98,17 @@ function renderTables(records) {
                         <div class="budget-progress-container" id="progress-container-${item.id}" data-planned="${item.planned_amount}" data-actual="${item.actual_amount}">
                             <div class="budget-numbers">
                                 <span>${percent}%</span>
-                                <span><span class="txt-actual">${item.actual_amount.toFixed(2)}</span> / ${item.planned_amount.toFixed(2)} ₪</span>
+                                <span style="direction: ltr; display: inline-block;"><span class="txt-actual">${item.actual_amount.toFixed(2)}</span> / ${item.planned_amount.toFixed(2)} ₪</span>
                             </div>
                             <div class="progress-bar-bg">
-                                <div id="bar-fill-${item.id}" class="progress-bar-fill ${colorClass}" style="width: ${barWidth}%;"></div>
+                                <div id="bar-fill-${item.id}" class="progress-bar-fill ${colorClass}" style="width: ${Math.min(Math.max(percent, 0), 100)}%;"></div>
                             </div>
                         </div>
                     </td>
-                    <td style="text-align: center;">
-                        <button class="btn-add" onclick="handleAddClick(${item.id}, ${isIncome})">+</button>
-                    </td>
+                    <td style="text-align: center;"><button class="btn-add" onclick="handleAddClick(${item.id}, ${isIncome})">+</button></td>
                 </tr>
             `;
         });
-        
         html += `</tbody></table>`;
         block.innerHTML = html;
         container.appendChild(block);
@@ -158,12 +118,8 @@ function renderTables(records) {
 function handleAddClick(recordId, isIncome) {
     const amountStr = prompt("הזיני סכום להוספה:");
     if (amountStr === null) return;
-    
     const amount = parseFloat(amountStr);
-    if (isNaN(amount) || amount <= 0) {
-        alert("אנא הזיני סכום מספרי תקין הגדול מ-0.");
-        return;
-    }
+    if (isNaN(amount) || amount <= 0) return alert("אנא הזיני סכום תקין.");
 
     fetch('/api/update-actual', {
         method: 'POST',
@@ -173,46 +129,253 @@ function handleAddClick(recordId, isIncome) {
     .then(res => res.json())
     .then(resData => {
         if (resData.success) {
-            const container = document.getElementById(`progress-container-${recordId}`);
-            const barFill = document.getElementById(`bar-fill-${recordId}`);
+            loadMonthlyData(); // טעינה ועדכון אוטומטי מחדש של הכל בצורה מסודרת
+        }
+    });
+}
+
+function loadAnnualDataFromServer() {
+    fetch('/api/annual-summary')
+        .then(res => res.json())
+        .then(data => {
+            renderAnnualChart(data.months);
+            renderAnnualCategories(data.categories);
+        })
+        .catch(err => console.error(err));
+}
+
+function renderAnnualChart(monthsData) {
+    const chartContainer = document.getElementById("annual-chart-bars");
+    chartContainer.innerHTML = "";
+
+    let maxAmount = 1000;
+    monthsData.forEach(m => {
+        if (m.income > maxAmount) maxAmount = m.income;
+        if (m.expense > maxAmount) maxAmount = m.expense;
+    });
+
+    // המערך מגיע כבר ממוין בצורה מושלמת (ינואר עד דצמבר)
+    monthsData.forEach(m => {
+        const incomeHeight = m.income > 0 ? (m.income / maxAmount) * 100 : 0;
+        const expenseHeight = m.expense > 0 ? (m.expense / maxAmount) * 100 : 0;
+
+        const col = document.createElement("div");
+        col.className = "chart-month-column";
+        col.innerHTML = `
+            <div class="chart-bars-pair">
+                <div class="chart-bar expense" style="height: ${expenseHeight}%;" title="הוצאות: ${m.expense.toFixed(2)} ₪"></div>
+                <div class="chart-bar income" style="height: ${incomeHeight}%;" title="הכנסות: ${m.income.toFixed(2)} ₪"></div>
+            </div>
+            <div class="chart-month-label">${m.name}</div>
+        `;
+        chartContainer.appendChild(col);
+    });
+}
+
+function renderAnnualCategories(categoriesData) {
+    const container = document.getElementById("annual-categories-container");
+    container.innerHTML = "";
+
+    categoriesData.forEach(cat => {
+        const isIncome = cat.category_type === 'INCOME';
+        let catPercent = cat.planned_amount > 0 ? Math.round((cat.actual_amount / cat.planned_amount) * 100) : 0;
+        
+        // 1. סרגל קבוצה ראשי: צבע קבוע מוחלט (ירוק להכנסות, אדום להוצאות)
+        let catColorClass = isIncome ? 'bg-normal' : 'bg-danger';
+
+        const item = document.createElement("div");
+        item.className = "accordion-item"; 
+        
+        let subItemsHtml = `<table class="annual-sub-table"><tbody>`;
+        
+        cat.subItems.forEach(sub => {
+            let subPercent = sub.planned_amount > 0 ? Math.round((sub.actual_amount / sub.planned_amount) * 100) : 0;
             
-            const plannedAmount = parseFloat(container.getAttribute('data-planned'));
-            const currentActual = parseFloat(container.getAttribute('data-actual'));
-            
-            const newActual = currentActual + amount;
-            container.setAttribute('data-actual', newActual);
-            
-            const recordIndex = currentMonthRecords.findIndex(r => r.id === recordId);
-            if (recordIndex > -1) {
-                currentMonthRecords[recordIndex].actual_amount = newActual;
-            }
-            
-            calculateAndDisplayTotals(); // עדכון אוטומטי של הסרגלים בכרטיסיות הראשיות!
-            
-            let percent = 0;
-            if (plannedAmount !== 0) {
-                percent = Math.round((newActual / plannedAmount) * 100);
-            }
-            
-            container.querySelector('.budget-numbers').innerHTML = `
-                <span>${percent}%</span>
-                <span><span class="txt-actual">${newActual.toFixed(2)}</span> / ${plannedAmount.toFixed(2)} ₪</span>
-            `;
-            
-            barFill.style.width = `${Math.min(Math.max(percent, 0), 100)}%`;
-            
-            barFill.className = 'progress-bar-fill'; 
+            // 2. סרגלים פנימיים: צביעה חכמה ומקורית לפי יחס הניצול (כולל צהוב ואדום בחריגה)
+            let subColorClass = 'bg-normal';
             if (!isIncome) {
-                if (percent > 100) barFill.classList.add('bg-danger');
-                else if (percent > 85) barFill.classList.add('bg-warning');
-                else barFill.classList.add('bg-normal');
+                if (subPercent > 100) subColorClass = 'bg-danger';      // חריגה - אדום
+                else if (subPercent > 85) subColorClass = 'bg-warning'; // התקרבות לחריגה - צהוב
             } else {
-                if (percent < 100) barFill.classList.add('bg-warning');
-                else barFill.classList.add('bg-normal');
+                if (subPercent < 100) subColorClass = 'bg-warning';     // טרם הושג יעד ההכנסה - צהוב
             }
+
+            subItemsHtml += `
+                <tr>
+                    <td style="width: 150px; font-weight: bold; color: #2c3e50;">${sub.item_name}</td>
+                    <td>
+                        <div class="budget-progress-container">
+                            <div class="budget-numbers">
+                                <span>${subPercent}%</span>
+                                <span style="direction: ltr; display: inline-block;">${sub.actual_amount.toFixed(2)} / ${sub.planned_amount.toFixed(2)} ₪</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill ${subColorClass}" style="width: ${Math.min(Math.max(subPercent, 0), 100)}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        subItemsHtml += `</tbody></table>`;
+
+        item.innerHTML = `
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-header-main" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <span class="accordion-title" style="min-width: 180px;">${cat.category_name}</span>
+                    <div class="accordion-progress-wrapper">
+                        <div class="budget-progress-container" style="margin: 0; width: 100%;">
+                            <div class="budget-numbers">
+                                <span>${catPercent}%</span>
+                                <span style="direction: ltr; display: inline-block;">${cat.actual_amount.toFixed(2)} / ${cat.planned_amount.toFixed(2)} ₪</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill ${catColorClass}" style="width: ${Math.min(Math.max(catPercent, 0), 100)}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="accordion-toggle-icon" style="margin-right: 15px;">▼</span>
+            </div>
+            <div class="accordion-content">${subItemsHtml}</div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function toggleAccordion(headerElement) {
+    headerElement.parentElement.classList.toggle("open");
+}
+
+// פתיחת חלונית הדיווח המהיר
+function openQuickReportModal() {
+    document.getElementById("quick-amount").value = "";
+    populateQuickCategorySelect(currentMonthRecords);
+    populateQuickItemSelect(currentMonthRecords, "");
+    document.getElementById("quick-report-overlay").classList.add("active");
+}
+
+// סגירת חלונית הדיווח המהיר
+function closeQuickReportModal() {
+    document.getElementById("quick-report-overlay").classList.remove("active");
+    document.getElementById("quick-amount").value = "";
+    document.getElementById("quick-category-select").value = "";
+    document.getElementById("quick-item-input").value = "";
+    const datalist = document.getElementById("quick-item-options");
+    if (datalist) datalist.innerHTML = "";
+}
+
+function populateQuickCategorySelect(records) {
+    const select = document.getElementById("quick-category-select");
+    select.innerHTML = "<option value=\"\">-- בחרי קטגוריה --</option>";
+
+    const categoryNames = [...new Set(records.map(record => record.category_name))].sort((a, b) => a.localeCompare(b));
+    categoryNames.forEach(categoryName => {
+        const option = document.createElement("option");
+        option.value = categoryName;
+        option.textContent = categoryName;
+        select.appendChild(option);
+    });
+
+    select.value = "";
+}
+
+function populateQuickItemSelect(records, selectedCategoryName = "") {
+    // Populate the datalist source from records for the given category (kept separate from filtering)
+    const datalist = document.getElementById("quick-item-options");
+    datalist.innerHTML = "";
+
+    const filteredRecords = selectedCategoryName
+        ? records.filter(record => record.category_name === selectedCategoryName)
+        : records;
+
+    const sortedRecords = [...filteredRecords].sort((a, b) => a.item_name.localeCompare(b.item_name));
+    sortedRecords.forEach(record => {
+        const option = document.createElement("option");
+        option.value = record.item_name;
+        option.setAttribute("data-record-id", record.id);
+        option.setAttribute("data-search-text", `${record.item_name} ${record.category_name}`.toLowerCase());
+        datalist.appendChild(option);
+    });
+
+    document.getElementById("quick-item-input").value = "";
+}
+
+function onCategoryChange() {
+    const selectedCategoryName = document.getElementById("quick-category-select").value;
+    populateQuickItemSelect(currentMonthRecords, selectedCategoryName);
+}
+
+function filterQuickItemOptions() {
+    const input = document.getElementById("quick-item-input");
+    const searchVal = input.value.trim().toLowerCase();
+    const selectedCategory = document.getElementById("quick-category-select").value;
+    const datalist = document.getElementById("quick-item-options");
+
+    // Rebuild datalist to include only matching entries (removing non-matching helps browsers honor filtering)
+    datalist.innerHTML = "";
+
+    const source = selectedCategory
+        ? currentMonthRecords.filter(r => r.category_name === selectedCategory)
+        : currentMonthRecords;
+
+    const sorted = [...source].sort((a, b) => a.item_name.localeCompare(b.item_name));
+    sorted.forEach(record => {
+        const text = `${record.item_name} ${record.category_name}`.toLowerCase();
+        if (!searchVal || text.includes(searchVal)) {
+            const opt = document.createElement('option');
+            opt.value = record.item_name;
+            opt.setAttribute('data-record-id', record.id);
+            datalist.appendChild(opt);
+        }
+    });
+}
+
+// שמירת הנתון המהיר ושליחתו ל-API הקיים בשרת
+function submitQuickReport() {
+    const amountVal = parseFloat(document.getElementById("quick-amount").value);
+    const selectedItemName = document.getElementById("quick-item-input").value;
+    const selectedOption = Array.from(document.getElementById("quick-item-options").options).find(option => option.value === selectedItemName);
+    const selectedRecordId = selectedOption ? parseInt(selectedOption.getAttribute("data-record-id"), 10) : null;
+
+    // בדיקות תקינות
+    if (isNaN(amountVal) || amountVal <= 0) {
+        alert("אנא הזיני סכום תקציב תקין הגדול מ-0.");
+        return;
+    }
+    if (!selectedRecordId) {
+        alert("אנא בחרי סעיף תקציבי מהרשימה.");
+        return;
+    }
+
+    // שליחה לנקודת הקצה הקיימת בשרת שלך (update-actual)
+    fetch('/api/update-actual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordId: selectedRecordId, amountToAdd: amountVal })
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if (resData.success) {
+            // עדכון מקומי מהיר כדי לתת משוב ממשי למשתמש
+            const rec = currentMonthRecords.find(r => r.id === selectedRecordId);
+            if (rec) {
+                rec.actual_amount = (rec.actual_amount || 0) + amountVal;
+                renderTables(currentMonthRecords);
+                calculateAndDisplayTotals();
+                // highlight the updated bar briefly
+                const bar = document.getElementById(`bar-fill-${selectedRecordId}`);
+                if (bar) {
+                    bar.classList.add('pulse');
+                    setTimeout(() => bar.classList.remove('pulse'), 950);
+                }
+            }
+            closeQuickReportModal(); // סגירת הטופס
+            // בקשה לשרת לעדכון נתונים רשמיים (עמידה ברקע)
+            loadMonthlyData();
         } else {
             alert("העדכון נכשל בשרת.");
         }
     })
-    .catch(err => console.error("שגיאה בתקשורת עם השרת:", err));
+    .catch(err => console.error("שגיאה בעדכון המהיר:", err));
 }
