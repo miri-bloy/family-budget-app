@@ -1,11 +1,16 @@
 const CURRENT_MONTH = "2026-04"; 
 let currentMonthRecords = [];
+let previousMonthRecords = [];
+let activePage = 'monthly';
+let selectedPreviousMonth = CURRENT_MONTH;
 
 document.addEventListener("DOMContentLoaded", () => {
     loadMonthlyData();
+    document.getElementById('previous-month-input').value = CURRENT_MONTH;
 });
 
 function switchPage(pageId) {
+    activePage = pageId;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     
@@ -14,6 +19,10 @@ function switchPage(pageId) {
 
     if (pageId === 'annual') {
         loadAnnualDataFromServer();
+    } else if (pageId === 'monthly') {
+        if (!currentMonthRecords.length) loadMonthlyData();
+    } else if (pageId === 'previous') {
+        document.getElementById('previous-month-label').innerText = formatMonthLabel(selectedPreviousMonth);
     }
 }
 
@@ -28,43 +37,14 @@ function loadMonthlyData() {
         .catch(err => console.error(err));
 }
 
-function calculateAndDisplayTotals() {
-    let totalIncomeActual = 0, totalIncomePlanned = 0;
-    let totalExpensesActual = 0, totalExpensesPlanned = 0;
-
-    currentMonthRecords.forEach(record => {
-        if (record.category_type === 'INCOME') {
-            totalIncomeActual += record.actual_amount;
-            totalIncomePlanned += record.planned_amount;
-        } else if (record.category_type === 'EXPENSE') {
-            totalExpensesActual += record.actual_amount;
-            totalExpensesPlanned += record.planned_amount;
-        }
-    });
-
-    let balance = totalIncomeActual - totalExpensesActual;
-
-    document.getElementById('total-income-display').innerText = totalIncomeActual.toFixed(2) + " ₪";
-    document.getElementById('total-expenses-display').innerText = totalExpensesActual.toFixed(2) + " ₪";
-    document.getElementById('total-balance-display').innerText = balance.toFixed(2) + " ₪";
-    
-    const balanceDisplay = document.getElementById('total-balance-display');
-    balanceDisplay.style.color = balance < 0 ? "#e74c3c" : "#2c3e50";
-
-    let incomePercent = totalIncomePlanned !== 0 ? Math.round((totalIncomeActual / totalIncomePlanned) * 100) : 0;
-    document.getElementById('income-percent-label').innerText = incomePercent + "%";
-    const incomeBar = document.getElementById('income-bar-fill');
-    incomeBar.style.width = `${Math.min(Math.max(incomePercent, 0), 100)}%`;
-
-    let expensePercent = totalExpensesPlanned !== 0 ? Math.round((totalExpensesActual / totalExpensesPlanned) * 100) : 0;
-    document.getElementById('expense-percent-label').innerText = expensePercent + "%";
-    const expenseBar = document.getElementById('expense-bar-fill');
-    expenseBar.style.width = `${Math.min(Math.max(expensePercent, 0), 100)}%`;
-}
-
-function renderTables(records) {
-    const container = document.getElementById("tables-container");
+function renderTables(records, containerId = "tables-container") {
+    const container = document.getElementById(containerId);
     container.innerHTML = ""; 
+
+    if (!records || records.length === 0) {
+        container.innerHTML = `<div class="empty-state">אין נתונים להצגה לחודש זה.</div>`;
+        return;
+    }
 
     const groups = {};
     records.forEach(r => {
@@ -129,9 +109,80 @@ function handleAddClick(recordId, isIncome) {
     .then(res => res.json())
     .then(resData => {
         if (resData.success) {
-            loadMonthlyData(); // טעינה ועדכון אוטומטי מחדש של הכל בצורה מסודרת
+            if (activePage === 'previous') {
+                loadPreviousMonthData();
+            } else {
+                loadMonthlyData();
+            }
         }
     });
+}
+
+function getRecordsForActivePage() {
+    return activePage === 'previous' ? previousMonthRecords : currentMonthRecords;
+}
+
+function formatMonthLabel(monthKey) {
+    const [year, month] = monthKey.split('-');
+    const names = {
+        '01': 'ינואר', '02': 'פברואר', '03': 'מרץ', '04': 'אפריל',
+        '05': 'מאי', '06': 'יוני', '07': 'יולי', '08': 'אוגוסט',
+        '09': 'ספטמבר', '10': 'אוקטובר', '11': 'נובמבר', '12': 'דצמבר'
+    };
+    return `${names[month] || month} ${year}`;
+}
+
+function calculateAndDisplayTotals(records = currentMonthRecords, prefix = '') {
+    let totalIncomeActual = 0, totalIncomePlanned = 0;
+    let totalExpensesActual = 0, totalExpensesPlanned = 0;
+
+    records.forEach(record => {
+        if (record.category_type === 'INCOME') {
+            totalIncomeActual += record.actual_amount;
+            totalIncomePlanned += record.planned_amount;
+        } else if (record.category_type === 'EXPENSE') {
+            totalExpensesActual += record.actual_amount;
+            totalExpensesPlanned += record.planned_amount;
+        }
+    });
+
+    let balance = totalIncomeActual - totalExpensesActual;
+
+    document.getElementById(`${prefix ? prefix + '-' : ''}income-display`).innerText = totalIncomeActual.toFixed(2) + " ₪";
+    document.getElementById(`${prefix ? prefix + '-' : ''}expenses-display`).innerText = totalExpensesActual.toFixed(2) + " ₪";
+    document.getElementById(`${prefix ? prefix + '-' : ''}balance-display`).innerText = balance.toFixed(2) + " ₪";
+    
+    const balanceDisplay = document.getElementById(`${prefix ? prefix + '-' : ''}balance-display`);
+    balanceDisplay.style.color = balance < 0 ? "#e74c3c" : "#2c3e50";
+
+    let incomePercent = totalIncomePlanned !== 0 ? Math.round((totalIncomeActual / totalIncomePlanned) * 100) : 0;
+    document.getElementById(`${prefix ? prefix + '-' : ''}income-percent-label`).innerText = incomePercent + "%";
+    const incomeBar = document.getElementById(`${prefix ? prefix + '-' : ''}income-bar-fill`);
+    if (incomeBar) incomeBar.style.width = `${Math.min(Math.max(incomePercent, 0), 100)}%`;
+
+    let expensePercent = totalExpensesPlanned !== 0 ? Math.round((totalExpensesActual / totalExpensesPlanned) * 100) : 0;
+    document.getElementById(`${prefix ? prefix + '-' : ''}expense-percent-label`).innerText = expensePercent + "%";
+    const expenseBar = document.getElementById(`${prefix ? prefix + '-' : ''}expense-bar-fill`);
+    if (expenseBar) expenseBar.style.width = `${Math.min(Math.max(expensePercent, 0), 100)}%`;
+}
+
+function loadPreviousMonthData() {
+    const input = document.getElementById('previous-month-input').value;
+    if (!input) {
+        return alert('אנא בחרי חודש תקין.');
+    }
+
+    selectedPreviousMonth = input;
+    document.getElementById('previous-month-label').innerText = formatMonthLabel(selectedPreviousMonth);
+
+    fetch(`/api/month/${selectedPreviousMonth}`)
+        .then(res => res.json())
+        .then(data => {
+            previousMonthRecords = data;
+            renderTables(previousMonthRecords, 'previous-tables-container');
+            calculateAndDisplayTotals(previousMonthRecords, 'previous');
+        })
+        .catch(err => console.error(err));
 }
 
 function loadAnnualDataFromServer() {
@@ -250,8 +301,9 @@ function toggleAccordion(headerElement) {
 // פתיחת חלונית הדיווח המהיר
 function openQuickReportModal() {
     document.getElementById("quick-amount").value = "";
-    populateQuickCategorySelect(currentMonthRecords);
-    populateQuickItemSelect(currentMonthRecords, "");
+    const records = getRecordsForActivePage();
+    populateQuickCategorySelect(records);
+    populateQuickItemSelect(records, "");
     document.getElementById("quick-report-overlay").classList.add("active");
 }
 
@@ -303,7 +355,7 @@ function populateQuickItemSelect(records, selectedCategoryName = "") {
 
 function onCategoryChange() {
     const selectedCategoryName = document.getElementById("quick-category-select").value;
-    populateQuickItemSelect(currentMonthRecords, selectedCategoryName);
+    populateQuickItemSelect(getRecordsForActivePage(), selectedCategoryName);
 }
 
 function filterQuickItemOptions() {
@@ -315,9 +367,10 @@ function filterQuickItemOptions() {
     // Rebuild datalist to include only matching entries (removing non-matching helps browsers honor filtering)
     datalist.innerHTML = "";
 
+    const sourceRecords = getRecordsForActivePage();
     const source = selectedCategory
-        ? currentMonthRecords.filter(r => r.category_name === selectedCategory)
-        : currentMonthRecords;
+        ? sourceRecords.filter(r => r.category_name === selectedCategory)
+        : sourceRecords;
 
     const sorted = [...source].sort((a, b) => a.item_name.localeCompare(b.item_name));
     sorted.forEach(record => {
@@ -348,6 +401,7 @@ function submitQuickReport() {
         return;
     }
 
+    const activeRecords = getRecordsForActivePage();
     // שליחה לנקודת הקצה הקיימת בשרת שלך (update-actual)
     fetch('/api/update-actual', {
         method: 'POST',
@@ -357,22 +411,25 @@ function submitQuickReport() {
     .then(res => res.json())
     .then(resData => {
         if (resData.success) {
-            // עדכון מקומי מהיר כדי לתת משוב ממשי למשתמש
-            const rec = currentMonthRecords.find(r => r.id === selectedRecordId);
+            closeQuickReportModal(); // סגירת הטופס לפני הרענון
+
+            const rec = activeRecords.find(r => r.id === selectedRecordId);
             if (rec) {
                 rec.actual_amount = (rec.actual_amount || 0) + amountVal;
-                renderTables(currentMonthRecords);
-                calculateAndDisplayTotals();
-                // highlight the updated bar briefly
+                renderTables(activeRecords, activePage === 'previous' ? 'previous-tables-container' : 'tables-container');
+                calculateAndDisplayTotals(activeRecords, activePage === 'previous' ? 'previous' : '');
                 const bar = document.getElementById(`bar-fill-${selectedRecordId}`);
                 if (bar) {
                     bar.classList.add('pulse');
                     setTimeout(() => bar.classList.remove('pulse'), 950);
                 }
             }
-            closeQuickReportModal(); // סגירת הטופס
-            // בקשה לשרת לעדכון נתונים רשמיים (עמידה ברקע)
-            loadMonthlyData();
+
+            if (activePage === 'previous') {
+                loadPreviousMonthData();
+            } else {
+                loadMonthlyData();
+            }
         } else {
             alert("העדכון נכשל בשרת.");
         }

@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS budget_items (
     FOREIGN KEY(category_id) REFERENCES categories(id)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_items_unique_cat_name
+ON budget_items(category_id, name);
+
 -- יצירת טבלת הרשומות החודשיות הדינמיות (הארכיון והחודש הנוכחי)
 CREATE TABLE IF NOT EXISTS monthly_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +26,9 @@ CREATE TABLE IF NOT EXISTS monthly_records (
     actual_amount REAL DEFAULT 0, -- שדה הניצול בפועל שמאתחל ל-0
     FOREIGN KEY(item_id) REFERENCES budget_items(id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_monthly_records_unique_month_item
+ON monthly_records(month, item_id);
 
 -- יצירת טבלת קופת החגים
 CREATE TABLE IF NOT EXISTS holiday_fund (

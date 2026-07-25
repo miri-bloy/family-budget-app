@@ -41,6 +41,7 @@
     <div class="sidebar">
         <h2>תקציב משפחתי</h2>
         <a href="#" class="nav-link active" onclick="switchPage('monthly')">דיווח חודשי</a>
+        <a href="#" class="nav-link" onclick="switchPage('previous')">דיווח חודשים קודמים</a>
         <a href="#" class="nav-link" onclick="switchPage('annual')">מצב שנתי</a>
         <a href="#" class="nav-link" onclick="switchPage('settings')">ניהול והגדרות</a>
     </div>
@@ -87,11 +88,59 @@
             <div id="tables-container"></div>
         </div>
 
+        <div id="previous" class="page">
+            <div class="header-container">
+                <h1>דיווח חודשים קודמים - <span id="previous-month-label">בחר חודש</span></h1>
+            </div>
+
+            <div class="search-panel">
+                <div class="form-group">
+                    <label for="previous-month-input">חודש ושנה</label>
+                    <input id="previous-month-input" type="month" />
+                </div>
+                <button id="btn-load-previous" class="btn-submit" onclick="loadPreviousMonthData()">טען דיווח</button>
+            </div>
+
+            <div class="summary-container">
+                <div class="summary-card income-card">
+                    <h4>סה"כ הכנסות (בפועל)</h4>
+                    <div class="amount-value" id="previous-income-display">0.00 ₪</div>
+                    <div class="card-progress-container">
+                        <span class="card-progress-text" id="previous-income-percent-label">0%</span>
+                        <div class="progress-bar-bg">
+                            <div id="previous-income-bar-fill" class="progress-bar-fill bg-normal" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card expense-card">
+                    <h4>סה"כ הוצאות (בפועל)</h4>
+                    <div class="amount-value" id="previous-expenses-display">0.00 ₪</div>
+                    <div class="card-progress-container">
+                        <span class="card-progress-text" id="previous-expense-percent-label">0%</span>
+                        <div class="progress-bar-bg">
+                            <div id="previous-expense-bar-fill" class="progress-bar-fill bg-normal" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card balance-card">
+                    <h4>יתרה חודשית נוכחית</h4>
+                    <div class="amount-value" id="previous-balance-display">0.00 ₪</div>
+                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 8px; font-weight: bold;">
+                        הכנסות פחות הוצאות בפועל
+                    </div>
+                </div>
+            </div>
+            
+            <div id="previous-tables-container"></div>
+        </div>
+
         <!-- דף מצב שנתי -->
-<div id="annual" class="page">
-    <h1>מצב שנתי - שנת 2026</h1>
-    
-    <!-- חלק א': תרשים הכנסות והוצאות לפי חודשים (בהשראת image_e4236a.png) -->
+        <div id="annual" class="page">
+            <h1>מצב שנתי - שנת 2026</h1>
+            
+            <!-- חלק א': תרשים הכנסות והוצאות לפי חודשים (בהשראת image_e4236a.png) -->
     <div class="chart-card">
         <div class="chart-title-badge">תרשים הכנסות והוצאות – לפי חודשים</div>
         <div class="chart-container" id="annual-chart-bars">
